@@ -1,44 +1,57 @@
-import pandas as pd
 import random
 import datetime
+import pandas as pd
 
-# Task: https://stepik.org/lesson/154087/step/1?unit=128454
-# Однажды я попросил, чтобы студенты ответили на два вопроса анкеты «ваш год рождения» и «ваш возраст».
-# Из их ответов я сформировал таблицу, в которой был столбец Р=«год рождения студента» и Q=«возраст студента».
-# Оказывается, значение коэффициента корреляции признаков P и Q зависит от месяца, в котором проводилось анкетирование (это не шутка!).
-# Укажите два месяца, которым соответствует наименьшее (по модулю) значение коэффициента корреляции признаков P и Q.
+# random.seed(42) # Fix random seed for testing
+amount_of_students = 3000 # For instance, 3000 students
 
-# For example, all students were born in 2000 or 2001, and test date is 20th date of each month in 2020.
+# Create random students birthdays for survey
+def generate_random_dob_students():
+    birthday_dates = []
 
-# Generate randon dates of  birthdays
-dates = []
+    while len(birthday_dates) < amount_of_students:
+        try:
+            birthday_dates.append(datetime.date(random.randint(2000,2001), random.randint(1,12), random.randint(1, 31)))
+        except:
+            continue
 
-while len(dates) < 500:
-    try:
-        dates.append(datetime.date(random.randint(2000, 2001), random.randint(1, 12), random.randint(1, 31)))
-    except:
-        continue
+    df = pd.DataFrame({'Date of birth': birthday_dates})
+    return df
 
-df = pd.DataFrame({'Date of birthday': dates})
+df_dob = generate_random_dob_students() # Generate random Dates Of Birthdays and adding to DataFrame
 
-# Function to calculate age
-def age(birth_date, month):
-    reference_date = datetime.date(2020, month, 20)
-    days_difference = (reference_date - birth_date).days
-    return int(days_difference // 365.25)
 
-# adding age by month
+# Add year as direct column
+df_dob['Year_of_birth'] = df_dob['Date of birth'].apply(lambda x: x.year)
+
+
+# survey function to calculate age
+def survey(date_of_survey, birth_date):
+    age = (date_of_survey - birth_date).days
+    return int(age//365.25)
+
+
+# Calculate ages for each student in every month
 for month in range(1, 13):
     column_name = f'Month_{month}'
-    ages = [age(birth_date, month) for birth_date in df['Date of birthday']]
-    df[column_name] = ages
+    ages = []
+    date_of_survey = datetime.date(2020, month, 15)  # Survey date always 15th day of month
 
-# Add year of birthday as numeric column
-df['year'] = df['Date of birthday'].apply(lambda x: x.year)
+    for birth_date in df_dob['Date of birth']:
+        ages.append(survey(date_of_survey, birth_date))
 
-# Remove non-numerical columns
-numeric_columns = df.select_dtypes(include=['number'])
+    # Add Age columns by Month to DataFrame
+    df_dob[column_name] = ages
 
-# Calculate correlation
-result = numeric_columns.corr().year.sort_values(ascending=False)
-print(result.iloc[1:3])
+
+# Remove non-numeric columns
+numerical_columns = df_dob.select_dtypes(include=['number'])
+
+# Calculate correlation for every month
+correlation = numerical_columns.corr().Year_of_birth
+
+# Find the minimum correlation
+min_month = correlation.sort_values(ascending=False)
+
+# print(f'Correlation for all month:\n {correlation}')
+print(f'Min correlation in:\n{min_month.iloc[1:3]}')
